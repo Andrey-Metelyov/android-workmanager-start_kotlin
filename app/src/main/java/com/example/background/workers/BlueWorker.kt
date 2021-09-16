@@ -11,15 +11,17 @@ import androidx.work.workDataOf
 import com.example.background.KEY_IMAGE_URI
 import java.lang.IllegalArgumentException
 
-
+private const val TAG = "BlurWorker"
 class BlurWorker(ctx: Context, params: WorkerParameters) : Worker(ctx, params)  {
-    val TAG = "BlurWorker"
     override fun doWork(): Result {
         val appContext = applicationContext
 
         val resourceUri = inputData.getString(KEY_IMAGE_URI)
 
         makeStatusNotification("Blurring image", appContext)
+
+        sleep()
+
         return try {
 //            val picture = BitmapFactory.decodeResource(
 //                appContext.resources,
