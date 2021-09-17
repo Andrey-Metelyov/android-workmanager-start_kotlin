@@ -20,6 +20,7 @@ import android.app.Application
 import android.content.ContentResolver
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -31,14 +32,13 @@ import com.example.background.workers.SaveImageToFileWorker
 private const val TAG = "BlurViewModel"
 class BlurViewModel(application: Application) : ViewModel() {
 
-    internal var imageUri: Uri? = null
+    private var imageUri: Uri? = null
     internal var outputUri: Uri? = null
     private val workManager = WorkManager.getInstance(application)
-    internal val outputWorkInfos: LiveData<List<WorkInfo>>
+    internal val outputWorkInfos: LiveData<List<WorkInfo>> = workManager.getWorkInfosByTagLiveData(TAG_OUTPUT)
 
 
     init {
-        outputWorkInfos = workManager.getWorkInfosByTagLiveData(TAG_OUTPUT)
         imageUri = getImageUri(application.applicationContext)
     }
 
@@ -58,6 +58,7 @@ class BlurViewModel(application: Application) : ViewModel() {
      * @param blurLevel The amount to blur the image
      */
     internal fun applyBlur(blurLevel: Int) {
+        Log.d(TAG, "applyBlur($blurLevel)")
         var continuation = workManager
             .beginUniqueWork(
                 IMAGE_MANIPULATION_WORK_NAME,
@@ -100,14 +101,12 @@ class BlurViewModel(application: Application) : ViewModel() {
     private fun getImageUri(context: Context): Uri {
         val resources = context.resources
 
-        val imageUri = Uri.Builder()
+        return Uri.Builder()
             .scheme(ContentResolver.SCHEME_ANDROID_RESOURCE)
             .authority(resources.getResourcePackageName(R.drawable.android_cupcake))
             .appendPath(resources.getResourceTypeName(R.drawable.android_cupcake))
             .appendPath(resources.getResourceEntryName(R.drawable.android_cupcake))
             .build()
-
-        return imageUri
     }
 
 

@@ -37,7 +37,7 @@ class BlurWorker(ctx: Context, params: WorkerParameters) : Worker(ctx, params)  
             val outputUri = writeBitmapToFile(appContext, output)
 
             val outputData = workDataOf(KEY_IMAGE_URI to outputUri.toString())
-            Log.d(TAG, "outputData = ${outputData}")
+            Log.d(TAG, "outputData = $outputData")
 
             Result.success(outputData)
         } catch (throwable: Throwable) {
