@@ -28,20 +28,31 @@ import com.example.background.workers.BlurWorker
 import com.example.background.workers.CleanupWorker
 import com.example.background.workers.SaveImageToFileWorker
 
-
+private const val TAG = "BlurViewModel"
 class BlurViewModel(application: Application) : ViewModel() {
 
     internal var imageUri: Uri? = null
     internal var outputUri: Uri? = null
-
     private val workManager = WorkManager.getInstance(application)
-    val outputWorkInfos: LiveData<List<WorkInfo>>
+    internal val outputWorkInfos: LiveData<List<WorkInfo>>
+
 
     init {
-        imageUri = getImageUri(application.applicationContext)
         outputWorkInfos = workManager.getWorkInfosByTagLiveData(TAG_OUTPUT)
+        imageUri = getImageUri(application.applicationContext)
     }
 
+    internal fun cancelWork() {
+        workManager.cancelUniqueWork(IMAGE_MANIPULATION_WORK_NAME)
+    }
+
+    private fun createInputDataForUri(): Data {
+        val builder = Data.Builder()
+        imageUri?.let {
+            builder.putString(KEY_IMAGE_URI, imageUri.toString())
+        }
+        return builder.build()
+    }
     /**
      * Create the WorkRequest to apply the blur and save the resulting image
      * @param blurLevel The amount to blur the image
@@ -62,7 +73,12 @@ class BlurViewModel(application: Application) : ViewModel() {
             continuation = continuation.then(blurBuilder.build())
         }
 
+        val constraints = Constraints.Builder()
+            .setRequiresCharging(true)
+            .build()
+
         val save = OneTimeWorkRequestBuilder<SaveImageToFileWorker>()
+            .setConstraints(constraints)
             .addTag(TAG_OUTPUT)
             .build()
 
@@ -70,6 +86,8 @@ class BlurViewModel(application: Application) : ViewModel() {
 
         continuation.enqueue()
     }
+
+
 
     private fun uriOrNull(uriString: String?): Uri? {
         return if (!uriString.isNullOrEmpty()) {
@@ -92,26 +110,19 @@ class BlurViewModel(application: Application) : ViewModel() {
         return imageUri
     }
 
-    private fun createInputDataForUri(): Data {
-        val builder = Data.Builder()
-        imageUri?.let {
-            builder.putString(KEY_IMAGE_URI, imageUri.toString())
-        }
-        return builder.build()
-    }
 
     internal fun setOutputUri(outputImageUri: String?) {
         outputUri = uriOrNull(outputImageUri)
     }
+}
 
-    class BlurViewModelFactory(private val application: Application) : ViewModelProvider.Factory {
+class BlurViewModelFactory(private val application: Application) : ViewModelProvider.Factory {
 
-        override fun <T : ViewModel?> create(modelClass: Class<T>): T {
-            return if (modelClass.isAssignableFrom(BlurViewModel::class.java)) {
-                BlurViewModel(application) as T
-            } else {
-                throw IllegalArgumentException("Unknown ViewModel class")
-            }
+    override fun <T : ViewModel?> create(modelClass: Class<T>): T {
+        return if (modelClass.isAssignableFrom(BlurViewModel::class.java)) {
+            BlurViewModel(application) as T
+        } else {
+            throw IllegalArgumentException("Unknown ViewModel class")
         }
     }
 }

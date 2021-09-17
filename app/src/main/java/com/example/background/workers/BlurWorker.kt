@@ -9,7 +9,6 @@ import androidx.work.Worker
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import com.example.background.KEY_IMAGE_URI
-import java.lang.IllegalArgumentException
 
 private const val TAG = "BlurWorker"
 class BlurWorker(ctx: Context, params: WorkerParameters) : Worker(ctx, params)  {
@@ -23,9 +22,6 @@ class BlurWorker(ctx: Context, params: WorkerParameters) : Worker(ctx, params)  
         sleep()
 
         return try {
-//            val picture = BitmapFactory.decodeResource(
-//                appContext.resources,
-//                R.drawable.android_cupcake)
             if (TextUtils.isEmpty(resourceUri)) {
                 Log.e(TAG, "Invalid input Uri")
                 throw IllegalArgumentException("Invalid input Uri")
@@ -34,19 +30,19 @@ class BlurWorker(ctx: Context, params: WorkerParameters) : Worker(ctx, params)  
             val resolver = appContext.contentResolver
 
             val picture = BitmapFactory.decodeStream(
-                resolver.openInputStream(Uri.parse(resourceUri))
-            )
+                resolver.openInputStream(Uri.parse(resourceUri)))
 
             val output = blurBitmap(picture, appContext)
 
             val outputUri = writeBitmapToFile(appContext, output)
 
             val outputData = workDataOf(KEY_IMAGE_URI to outputUri.toString())
+            Log.d(TAG, "outputData = ${outputData}")
 
-            return Result.success(outputData)
-        } catch (e: Throwable) {
+            Result.success(outputData)
+        } catch (throwable: Throwable) {
             Log.e(TAG, "Error applying blur")
-            e.printStackTrace()
+            throwable.printStackTrace()
             Result.failure()
         }
     }

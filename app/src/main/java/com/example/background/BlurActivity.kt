@@ -16,7 +16,9 @@
 
 package com.example.background
 
+import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
@@ -24,13 +26,10 @@ import androidx.lifecycle.Observer
 import androidx.work.WorkInfo
 import com.example.background.databinding.ActivityBlurBinding
 
+private const val TAG = "BlurActivity"
 class BlurActivity : AppCompatActivity() {
 
-    private val viewModel: BlurViewModel by viewModels {
-        BlurViewModel.BlurViewModelFactory(
-            application
-        )
-    }
+    private val viewModel: BlurViewModel by viewModels { BlurViewModelFactory(application) }
     private lateinit var binding: ActivityBlurBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -38,19 +37,38 @@ class BlurActivity : AppCompatActivity() {
         binding = ActivityBlurBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        viewModel.outputWorkInfos.observe(this, worksInfosObserver())
+                binding.goButton.setOnClickListener { viewModel.applyBlur(blurLevel) }
 
-        binding.goButton.setOnClickListener { viewModel.applyBlur(blurLevel) }
+        binding.seeFileButton.setOnClickListener {
+            viewModel.outputUri?.let { currentUri ->
+                Log.d(TAG, "Show Uri: $currentUri")
+                val actionView = Intent(Intent.ACTION_VIEW, currentUri)
+                actionView.resolveActivity(packageManager)?.run {
+                    startActivity(actionView)
+                }
+            }
+        }
+
+        binding.cancelButton.setOnClickListener { viewModel.cancelWork() }
+
+        viewModel.outputWorkInfos.observe(this, worksInfosObserver())
     }
 
     private fun worksInfosObserver(): Observer<List<WorkInfo>> {
         return Observer { listOfWorkInfo ->
-            if (listOfWorkInfo.isEmpty()) {
+            if (listOfWorkInfo.isNullOrEmpty()) {
                 return@Observer
             }
             val workInfo = listOfWorkInfo[0]
             if (workInfo.state.isFinished) {
                 showWorkFinished()
+                val outputImageUri = workInfo.outputData.getString(KEY_IMAGE_URI)
+                Log.d(TAG, "workInfo.outputData = ${workInfo.outputData}")
+                Log.d(TAG, "outputImageUri = $outputImageUri")
+                if (!outputImageUri.isNullOrEmpty()) {
+                    viewModel.setOutputUri(outputImageUri)
+                    binding.seeFileButton.visibility = View.VISIBLE
+                }
             } else {
                 showWorkInProgress()
             }
